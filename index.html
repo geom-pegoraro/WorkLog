@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f1923">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WorkLog">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>WorkLog</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1923;--surface:#1a2535;--surface2:#243044;--border:#2e3d54;
+  --office:#3b82f6;--office-glow:rgba(59,130,246,.22);
+  --smart:#10b981;--smart-glow:rgba(16,185,129,.22);
+  --skip:#f59e0b;--skip-glow:rgba(245,158,11,.22);
+  --paid:#22c55e;--unpaid:#ef4444;
+  --text:#e8edf5;--muted:#7a90a8;
+  --r:16px;--rs:10px;
+  --f:'DM Sans',sans-serif;--m:'DM Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--f);background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(59,130,246,.08),transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(16,185,129,.06),transparent 50%);pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column;}
+.screen{display:none;flex-direction:column;flex:1;overflow-y:auto;padding-bottom:84px;}
+.screen.active{display:flex;}
+
+/* HEADER */
+.hdr{padding:52px 20px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.logo{font-size:20px;font-weight:700;letter-spacing:-.5px;}.logo span{color:var(--office);}
+.hdr-date{font-size:11px;color:var(--muted);font-family:var(--m);}
+
+/* STEP LABEL */
+.step-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;padding-left:2px;}
+
+/* CLIENT GRID (step 1) */
+.client-section{margin:0 20px 14px;flex-shrink:0;}
+.client-grid{display:flex;gap:7px;flex-wrap:wrap;}
+.c-chip{padding:8px 15px;border-radius:20px;border:1px solid var(--border);background:var(--surface);font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);white-space:nowrap;transition:all .2s;}
+.c-chip.active{background:var(--office);border-color:var(--office);color:#fff;box-shadow:0 0 12px rgba(59,130,246,.3);}
+.c-chip.all-chip.active{background:var(--surface2);border-color:var(--border);color:var(--text);box-shadow:none;}
+.c-chip.add-chip{background:transparent;border-style:dashed;}
+
+/* SELECTED BANNER */
+.sel-banner{margin:0 20px 12px;padding:11px 15px;border-radius:var(--rs);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.07);}
+.sb-l{display:flex;align-items:center;gap:10px;}
+.sb-ico{font-size:22px;}
+.sb-name{font-size:15px;font-weight:700;}
+.sb-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.sb-change{font-size:11px;font-weight:500;color:var(--muted);cursor:pointer;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid var(--border);}
+
+/* TODAY CARD */
+.today-card{margin:0 20px 11px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;}
+.t-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:4px;}
+.t-status{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.s-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.t-hrs{font-family:var(--m);font-size:11px;color:var(--muted);margin-top:2px;}
+.t-note{font-size:11px;color:var(--muted);margin-top:5px;font-style:italic;border-left:2px solid var(--border);padding-left:8px;line-height:1.4;}
+
+/* MONTH CHIPS */
+.mo-sum{margin:0 20px 12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.mo-chip{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px 8px;text-align:center;}
+.mo-val{font-family:var(--m);font-size:18px;font-weight:500;margin-bottom:2px;}
+.mo-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;}
+.mo-office .mo-val{color:var(--office);}
+.mo-smart .mo-val{color:var(--smart);}
+.mo-skip .mo-val{color:var(--skip);}
+
+/* ACTION BUTTONS */
+.act-wrap{padding:0 20px;display:flex;flex-direction:column;gap:10px;}
+.act-btn{position:relative;width:100%;border:none;border-radius:var(--r);padding:16px 18px;cursor:pointer;display:flex;align-items:center;gap:13px;font-family:var(--f);font-weight:600;color:var(--text);background:var(--surface);border:1px solid var(--border);transition:transform .15s;overflow:hidden;}
+.act-btn::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s;}
+.act-btn:active{transform:scale(.97);}
+.b-off{border-color:rgba(59,130,246,.3);}.b-off::before{background:linear-gradient(135deg,var(--office-glow),transparent 60%);}.b-off:active::before{opacity:1;}.b-off .b-ico{background:var(--office-glow);color:var(--office);}
+.b-smt{border-color:rgba(16,185,129,.3);}.b-smt::before{background:linear-gradient(135deg,var(--smart-glow),transparent 60%);}.b-smt:active::before{opacity:1;}.b-smt .b-ico{background:var(--smart-glow);color:var(--smart);}
+.b-skp{border-color:rgba(245,158,11,.3);}.b-skp::before{background:linear-gradient(135deg,var(--skip-glow),transparent 60%);}.b-skp:active::before{opacity:1;}.b-skp .b-ico{background:var(--skip-glow);color:var(--skip);}
+.b-ico{width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.b-title{font-size:15px;font-weight:600;}.b-sub{font-size:11px;color:var(--muted);font-weight:400;}
+
+/* LOCKED */
+.locked-wrap{padding:0 20px;}
+.locked-box{background:var(--surface);border:1px dashed var(--border);border-radius:var(--r);padding:22px;text-align:center;color:var(--muted);}
+.locked-box .lk-ico{font-size:26px;margin-bottom:7px;}
+.locked-box p{font-size:13px;line-height:1.5;}
+
+.past-btn{margin:12px 20px 0;padding:12px 16px;background:var(--surface);border:1px dashed var(--border);border-radius:var(--r);color:var(--muted);font-family:var(--f);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:9px;transition:all .2s;}
+.past-btn:active{background:var(--surface2);color:var(--text);}
+.past-btn.disabled-btn{opacity:.4;pointer-events:none;}
+
+/* MODAL */
+.ovl{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(5px);}
+.ovl.open{opacity:1;pointer-events:all;}
+.sht{background:var(--surface);border:1px solid var(--border);border-bottom:none;border-radius:24px 24px 0 0;padding:20px 20px 44px;width:100%;max-width:480px;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:92vh;overflow-y:auto;}
+.ovl.open .sht{transform:translateY(0);}
+.sht-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+.sht-title{font-size:18px;font-weight:700;margin-bottom:2px;}
+.sht-sub{font-size:12px;color:var(--muted);margin-bottom:12px;}
+
+/* date input */
+.d-inp{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;color:var(--text);font-family:var(--m);font-size:15px;margin-bottom:10px;}
+.d-inp:focus{outline:none;border-color:var(--office);}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.6);}
+
+/* type row */
+.type-row{display:flex;gap:7px;margin-bottom:12px;}
+.tp-btn{flex:1;padding:9px 4px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:var(--f);font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;}
+.tp-btn.sel-o{border-color:rgba(59,130,246,.5);background:rgba(59,130,246,.15);color:var(--office);}
+.tp-btn.sel-s{border-color:rgba(16,185,129,.5);background:rgba(16,185,129,.15);color:var(--smart);}
+.tp-btn.sel-k{border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.15);color:var(--skip);}
+
+/* hours picker */
+.hrs-pick{display:flex;align-items:center;justify-content:center;gap:13px;margin:8px 0 14px;}
+.hrs-val{font-family:var(--m);font-size:50px;font-weight:500;width:90px;text-align:center;}
+.hrs-ctrl{display:flex;flex-direction:column;gap:6px;}
+.hb{width:40px;height:40px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;}
+.hb:active{transform:scale(.93);background:var(--border);}
+
+/* NOTE */
+.note-sec{margin-bottom:14px;}
+.note-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:6px;}
+.note-ta{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:var(--f);font-size:13px;line-height:1.5;resize:none;min-height:75px;transition:border-color .2s;}
+.note-ta:focus{outline:none;border-color:var(--office);}
+.note-ta::placeholder{color:var(--muted);}
+.note-cnt{font-size:10px;color:var(--muted);text-align:right;margin-top:2px;}
+
+/* next day banner (auto-advance) */
+.next-day-banner{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:10px;padding:11px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.ndb-left{font-size:13px;font-weight:600;}
+.ndb-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.ndb-skip{font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;}
+
+/* CONFIRM / DELETE */
+.sht-ok{width:100%;padding:14px;border-radius:var(--r);border:none;font-family:var(--f);font-size:15px;font-weight:600;color:#fff;cursor:pointer;transition:all .15s;margin-top:4px;}
+.sht-ok:active{transform:scale(.98);}
+.sht-del{width:100%;padding:11px;border-radius:var(--r);border:1px solid rgba(239,68,68,.3);background:transparent;font-family:var(--f);font-size:13px;font-weight:500;color:#ef4444;cursor:pointer;margin-top:8px;}
+
+/* CLIENT EDIT MODAL */
+.ce-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
+.ce-emoji-btn{width:52px;height:52px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);font-size:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s;}
+.ce-emoji-btn:active{transform:scale(.95);}
+.ce-name-inp{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:var(--f);font-size:15px;font-weight:600;}
+.ce-name-inp:focus{outline:none;border-color:var(--office);}
+.emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:12px 0;max-height:160px;overflow-y:auto;}
+.emoji-opt{width:100%;aspect-ratio:1;border-radius:8px;background:var(--surface2);border:1px solid transparent;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;}
+.emoji-opt:active{transform:scale(.9);}
+.emoji-opt.sel{border-color:var(--office);background:rgba(59,130,246,.15);}
+.client-list-item{display:flex;align-items:center;gap:10px;padding:11px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:7px;cursor:pointer;transition:all .2s;}
+.client-list-item:active{background:var(--border);}
+.cli-ico{font-size:22px;width:36px;text-align:center;}
+.cli-info{flex:1;}
+.cli-name{font-size:14px;font-weight:600;}
+.cli-stats{font-size:11px;color:var(--muted);font-family:var(--m);}
+.cli-edit-btn{padding:6px 12px;border-radius:8px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:var(--office);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--f);}
+.add-client-row{display:flex;gap:8px;margin-top:10px;}
+.ac-inp{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 13px;color:var(--text);font-family:var(--f);font-size:14px;}
+.ac-inp:focus{outline:none;border-color:var(--office);}
+.ac-btn{padding:10px 15px;background:var(--office);border:none;border-radius:9px;color:#fff;font-family:var(--f);font-weight:600;font-size:14px;cursor:pointer;}
+
+/* NAV */
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 0 22px;z-index:50;}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px;cursor:pointer;color:var(--muted);font-size:10px;font-weight:500;border:none;background:none;font-family:var(--f);transition:color .2s;}
+.nb .ni{font-size:20px;}
+.nb.active{color:var(--office);}
+
+/* CALENDAR */
+.cal-hdr{padding:50px 20px 8px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.cal-tabs{display:flex;background:var(--surface2);border-radius:10px;padding:3px;gap:2px;margin:0 20px 10px;flex-shrink:0;}
+.cal-tab{flex:1;padding:7px;text-align:center;border-radius:7px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;}
+.cal-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.cal-mnav{display:flex;align-items:center;gap:10px;}
+.cal-mtitle{font-size:17px;font-weight:700;min-width:150px;text-align:center;}
+.cnb{width:32px;height:32px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.cal-dh{display:grid;grid-template-columns:repeat(7,1fr);padding:0 13px;margin-bottom:3px;flex-shrink:0;}
+.cdn{text-align:center;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:5px 0;font-weight:500;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:0 13px;gap:3px;flex-shrink:0;}
+.cc{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;position:relative;}
+.cc.empty{pointer-events:none;}
+.cc.today{border:1.5px solid var(--office);}
+.cc.we{opacity:.3;}
+.cc .cn{font-size:12px;font-weight:600;line-height:1;}
+.cc .cdot{width:4px;height:4px;border-radius:50%;margin-top:2px;}
+.cc.has-note::after{content:'';position:absolute;top:3px;right:3px;width:4px;height:4px;border-radius:50%;background:#a78bfa;}
+.cc.t-off{background:rgba(59,130,246,.15);color:var(--office);}.cc.t-off .cdot{background:var(--office);}
+.cc.t-smt{background:rgba(16,185,129,.15);color:var(--smart);}.cc.t-smt .cdot{background:var(--smart);}
+.cc.t-skp{background:rgba(245,158,11,.1);color:var(--skip);}.cc.t-skp .cdot{background:var(--skip);}
+.cc.paid{box-shadow:inset 0 0 0 1.5px var(--paid);}
+.cc.unpaid{box-shadow:inset 0 0 0 1.5px var(--unpaid);}
+.cal-mg{display:grid;grid-template-columns:repeat(3,1fr);padding:0 13px;gap:9px;}
+.cmc{border-radius:11px;padding:15px 7px;text-align:center;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:all .2s;}
+.cmc:active{transform:scale(.97);}
+.cmc .cmn{font-size:14px;font-weight:600;margin-bottom:3px;}
+.cmc .cmh{font-family:var(--m);font-size:11px;color:var(--muted);}
+.cmc.paid{border-color:var(--paid);background:rgba(34,197,94,.08);}.cmc.paid .cmn{color:var(--paid);}
+.cmc.unpaid{border-color:var(--unpaid);background:rgba(239,68,68,.08);}.cmc.unpaid .cmn{color:var(--unpaid);}
+.cal-yg{display:grid;grid-template-columns:1fr 1fr;padding:0 13px;gap:9px;}
+.cyc{border-radius:11px;padding:15px;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+.cyc .yy{font-size:20px;font-weight:700;}.cyc .yh{font-family:var(--m);font-size:13px;color:var(--muted);}
+.cyc.paid{border-color:var(--paid);background:rgba(34,197,94,.08);}.cyc.paid .yy{color:var(--paid);}
+.cyc.unpaid{border-color:var(--unpaid);background:rgba(239,68,68,.08);}.cyc.unpaid .yy{color:var(--unpaid);}
+.cal-det{margin:10px 20px 0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 15px;}
+.cd-date{font-size:11px;color:var(--muted);margin-bottom:6px;}
+.cd-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.cd-type{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;}
+.cd-hrs{font-family:var(--m);font-size:18px;font-weight:500;}
+.cd-note{font-size:12px;color:var(--muted);font-style:italic;border-left:2px solid var(--border);padding-left:8px;margin-bottom:9px;line-height:1.45;}
+.cd-acts{display:flex;gap:7px;flex-wrap:wrap;}
+.db{flex:1;min-width:70px;padding:9px 8px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:var(--f);font-size:12px;font-weight:500;cursor:pointer;text-align:center;}
+.db.edit{border-color:rgba(59,130,246,.4);color:var(--office);}
+.db.pb{border-color:rgba(34,197,94,.4);color:var(--paid);}
+.db.ub{border-color:rgba(239,68,68,.4);color:var(--unpaid);}
+.cal-legend{display:flex;gap:11px;padding:8px 20px;flex-wrap:wrap;flex-shrink:0;}
+.leg-i{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted);}
+.leg-d{width:8px;height:8px;border-radius:50%;}
+.ctag{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;background:rgba(59,130,246,.15);color:var(--office);margin-left:5px;}
+
+/* REPORT */
+.rpt-hdr{padding:50px 20px 12px;flex-shrink:0;}
+.rpt-title{font-size:23px;font-weight:700;margin-bottom:2px;}
+.rpt-sub{font-size:12px;color:var(--muted);}
+.rpt-card{margin:0 20px 11px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px;}
+.rpt-ctitle{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:11px;}
+.rr{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);}
+.rr:last-child{border-bottom:none;}
+.rr-lbl{font-size:13px;display:flex;align-items:center;gap:6px;}
+.rr-val{font-family:var(--m);font-size:14px;font-weight:500;}
+.rpt-tot{font-size:15px;font-weight:700;display:flex;justify-content:space-between;align-items:center;padding-top:9px;}
+.rpt-tot-v{font-family:var(--m);font-size:19px;color:var(--office);}
+.comp-card{margin:0 20px 11px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px;}
+.comp-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:8px;}
+.comp-main{display:flex;justify-content:space-between;align-items:flex-end;}
+.comp-amt{font-family:var(--m);font-size:24px;font-weight:500;color:var(--smart);}
+.comp-dtl{font-size:11px;color:var(--muted);margin-top:2px;}
+.pay-tgl{padding:8px 13px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);font-family:var(--f);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
+.pay-tgl.paid{border-color:var(--paid);background:rgba(34,197,94,.1);color:var(--paid);}
+.pay-tgl.unpaid{border-color:var(--unpaid);background:rgba(239,68,68,.1);color:var(--unpaid);}
+.exp-btn{margin:0 20px 10px;width:calc(100% - 40px);padding:13px;border-radius:var(--r);border:1px solid rgba(59,130,246,.4);background:rgba(59,130,246,.1);color:var(--office);font-family:var(--f);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;}
+.exp-btn:active{transform:scale(.98);background:rgba(59,130,246,.2);}
+.mo-ov{margin:0 20px 11px;}
+.mo-ov-title{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:7px;padding-left:2px;}
+.moc{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:11px 13px;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+.moc:active{background:var(--surface2);}
+.moc-name{font-size:14px;font-weight:600;margin-bottom:1px;}
+.moc-h{font-size:11px;color:var(--muted);font-family:var(--m);}
+.moc-r{display:flex;align-items:center;gap:8px;}
+.moc-amt{font-family:var(--m);font-size:13px;color:var(--smart);}
+.pbadge{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;border:1px solid;}
+.pbadge.paid{background:rgba(34,197,94,.12);color:var(--paid);border-color:rgba(34,197,94,.3);}
+.pbadge.unpaid{background:rgba(239,68,68,.1);color:var(--unpaid);border-color:rgba(239,68,68,.3);}
+.mo-sel{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 11px;color:var(--text);font-family:var(--f);font-size:13px;cursor:pointer;flex:1;}
+.mo-sel:focus{outline:none;}
+
+/* EXPORT FILTER */
+.exp-filter{margin:0 20px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;}
+.ef-title{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:9px;}
+.ef-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.ef-chip{padding:6px 13px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);transition:all .2s;}
+.ef-chip.active{background:var(--office);border-color:var(--office);color:#fff;}
+
+/* SETTINGS */
+.set-hdr{padding:50px 20px 16px;flex-shrink:0;}
+.set-title{font-size:23px;font-weight:700;}
+.set-sec{margin:0 20px 15px;}
+.set-sec-t{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:7px;padding-left:3px;}
+.set-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);}
+.set-row:last-child{border-bottom:none;}
+.set-rl{font-size:14px;}.set-rs{font-size:11px;color:var(--muted);}
+.set-inp{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-family:var(--m);font-size:14px;width:88px;text-align:right;}
+.set-inp:focus{outline:none;border-color:var(--office);}
+
+/* RATE UPDATE BUTTON */
+.rate-update-btn{width:100%;padding:11px 14px;border-radius:10px;border:1px solid rgba(59,130,246,.4);background:rgba(59,130,246,.08);color:var(--office);font-family:var(--f);font-size:13px;font-weight:600;cursor:pointer;text-align:left;transition:all .2s;}
+.rate-update-btn:active{background:rgba(59,130,246,.18);}
+
+/* UPDATE BANNER */
+.update-banner{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#3b82f6;color:#fff;padding:11px 16px;display:none;align-items:center;justify-content:space-between;z-index:300;font-size:13px;font-weight:500;}
+.upd-btn{padding:5px 13px;border-radius:8px;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.15);color:#fff;font-family:var(--f);font-size:12px;font-weight:600;cursor:pointer;}
+.toast{position:fixed;top:55px;left:50%;transform:translateX(-50%) translateY(-14px);background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 17px;font-size:13px;font-weight:500;z-index:200;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══════════ HOME ══════════ -->
+<div class="screen active" id="sc-home">
+  <div class="hdr">
+    <div class="logo">Work<span>Log</span></div>
+    <div class="hdr-date" id="hdr-date"></div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="client-section" id="client-section">
+    <div class="step-lbl">1 · Seleziona cliente</div>
+    <div class="client-grid" id="client-grid"></div>
+  </div>
+
+  <!-- SELECTED BANNER -->
+  <div class="sel-banner" id="sel-banner" style="display:none">
+    <div class="sb-l">
+      <div class="sb-ico" id="sb-ico"></div>
+      <div><div class="sb-name" id="sb-name"></div><div class="sb-sub" id="sb-sub"></div></div>
+    </div>
+    <div class="sb-change" onclick="resetClient()">✕ Cambia</div>
+  </div>
+
+  <!-- TODAY -->
+  <div class="today-card" id="today-card" style="display:none">
+    <div class="t-lbl" id="t-lbl">Oggi</div>
+    <div class="t-status"><span class="s-dot" id="s-dot" style="background:#444"></span><span id="s-txt">Nessun dato</span></div>
+    <div class="t-hrs" id="t-hrs"></div>
+    <div class="t-note" id="t-note" style="display:none"></div>
+  </div>
+
+  <!-- MONTH SUMMARY -->
+  <div class="mo-sum" id="mo-sum" style="display:none">
+    <div class="mo-chip mo-office"><div class="mo-val" id="sum-o">0h</div><div class="mo-lbl">Ufficio</div></div>
+    <div class="mo-chip mo-smart"><div class="mo-val" id="sum-s">0h</div><div class="mo-lbl">Smart</div></div>
+    <div class="mo-chip mo-skip"><div class="mo-val" id="sum-k">0gg</div><div class="mo-lbl">Saltati</div></div>
+  </div>
+
+  <!-- STEP 2 locked -->
+  <div class="locked-wrap" id="locked-wrap">
+    <div class="locked-box"><div class="lk-ico">☝️</div><p>Seleziona un cliente sopra<br>per registrare le ore</p></div>
+  </div>
+
+  <!-- STEP 2 actions -->
+  <div class="act-wrap" id="act-wrap" style="display:none">
+    <div class="step-lbl" style="padding:0 0 0 2px">2 · Registra giornata</div>
+    <button class="act-btn b-off" onclick="openSheet('office',null,null)">
+      <div class="b-ico">🏢</div><div><div class="b-title">Ore in Ufficio</div><div class="b-sub">Registra giornata in presenza</div></div>
+    </button>
+    <button class="act-btn b-smt" onclick="openSheet('smart',null,null)">
+      <div class="b-ico">🏠</div><div><div class="b-title">Smart Working</div><div class="b-sub">Registra giornata da remoto</div></div>
+    </button>
+    <button class="act-btn b-skp" onclick="openSheet('skip',null,null)">
+      <div class="b-ico">⏭️</div><div><div class="b-title">Giornata Saltata</div><div class="b-sub">Ferie, malattia o assenza</div></div>
+    </button>
+  </div>
+
+  <button class="past-btn" id="past-btn" onclick="openPastDay()">
+    <span style="font-size:17px">📅</span><span>Aggiungi / modifica giorno passato…</span>
+  </button>
+</div>
+
+<!-- ══════════ CALENDAR ══════════ -->
+<div class="screen" id="sc-cal">
+  <div class="cal-hdr">
+    <div class="cal-mnav">
+      <button class="cnb" onclick="calNav(-1)">‹</button>
+      <div class="cal-mtitle" id="cal-title"></div>
+      <button class="cnb" onclick="calNav(1)">›</button>
+    </div>
+  </div>
+  <div class="cal-tabs">
+    <div class="cal-tab active" id="tab-days" onclick="setCalView('days')">Giorni</div>
+    <div class="cal-tab" id="tab-months" onclick="setCalView('months')">Mesi</div>
+    <div class="cal-tab" id="tab-years" onclick="setCalView('years')">Anni</div>
+  </div>
+  <div id="cal-dh" class="cal-dh">
+    <div class="cdn">Lun</div><div class="cdn">Mar</div><div class="cdn">Mer</div>
+    <div class="cdn">Gio</div><div class="cdn">Ven</div>
+    <div class="cdn" style="color:var(--skip)">Sab</div>
+    <div class="cdn" style="color:var(--skip)">Dom</div>
+  </div>
+  <div id="cal-grid"></div>
+  <div class="cal-legend" id="cal-leg">
+    <div class="leg-i"><div class="leg-d" style="background:var(--office)"></div>Ufficio</div>
+    <div class="leg-i"><div class="leg-d" style="background:var(--smart)"></div>Smart</div>
+    <div class="leg-i"><div class="leg-d" style="background:var(--skip)"></div>Saltata</div>
+    <div class="leg-i"><div class="leg-d" style="background:#a78bfa"></div>Note</div>
+    <div class="leg-i"><div class="leg-d" style="border:1.5px solid var(--paid);background:transparent"></div>Pagato</div>
+    <div class="leg-i"><div class="leg-d" style="border:1.5px solid var(--unpaid);background:transparent"></div>Non pag.</div>
+  </div>
+  <div class="cal-det" id="cal-det" style="display:none"></div>
+</div>
+
+<!-- ══════════ REPORT ══════════ -->
+<div class="screen" id="sc-report">
+  <div class="rpt-hdr"><div class="rpt-title">Report</div><div class="rpt-sub">Riepilogo mensile</div></div>
+  <div id="unpaid-total-card" style="display:none;margin:0 20px 12px;background:var(--surface);border:1px solid rgba(239,68,68,.35);border-radius:var(--r);padding:13px 15px;">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:8px">💰 Totale da incassare</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div><div id="unpaid-amt" style="font-family:var(--m);font-size:26px;font-weight:500;color:#ef4444">€ 0</div><div id="unpaid-dtl" style="font-size:11px;color:var(--muted);margin-top:2px"></div></div>
+      <div style="font-size:28px">⏳</div>
+    </div>
+  </div>
+  <div class="mo-ov"><div class="mo-ov-title">Panoramica mesi</div><div id="mo-ov-list"></div></div>
+  <div style="padding:0 20px 9px;display:flex;gap:8px;align-items:center;">
+    <select class="mo-sel" id="rpt-mo-sel" onchange="renderRptDetail()"></select>
+  </div>
+  <div class="rpt-card">
+    <div class="rpt-ctitle">Ore lavorate</div>
+    <div class="rr"><div class="rr-lbl">🏢 Ufficio</div><div class="rr-val" id="rpt-o" style="color:var(--office)">0h</div></div>
+    <div class="rr"><div class="rr-lbl">🏠 Smart Working</div><div class="rr-val" id="rpt-s" style="color:var(--smart)">0h</div></div>
+    <div class="rr"><div class="rr-lbl">⏭️ Giorni saltati</div><div class="rr-val" id="rpt-k" style="color:var(--skip)">0</div></div>
+    <div class="rpt-tot"><span>Totale ore</span><span class="rpt-tot-v" id="rpt-tot">0h</span></div>
+  </div>
+  <div class="comp-card" id="comp-card">
+    <div class="comp-lbl">Compenso stimato</div>
+    <div class="comp-main">
+      <div><div class="comp-amt" id="comp-amt">€ 0,00</div><div class="comp-dtl" id="comp-dtl"></div></div>
+      <button class="pay-tgl" id="pay-tgl" onclick="toggleMonthPaid()"></button>
+    </div>
+  </div>
+  <!-- EXPORT FILTER -->
+  <div class="exp-filter">
+    <div class="ef-title">Filtro export · Cliente</div>
+    <div class="ef-chips" id="ef-chips"></div>
+  </div>
+  <button class="exp-btn" onclick="exportExcel()">📊 Esporta Excel (filtrato)</button>
+</div>
+
+<!-- ══════════ SETTINGS ══════════ -->
+<div class="screen" id="sc-settings">
+  <div class="set-hdr"><div class="set-title">Impostazioni</div></div>
+  <div class="set-sec">
+    <div class="set-sec-t">Compenso</div>
+    <div class="set-card">
+      <div class="set-row">
+        <div><div class="set-rl">Tariffa oraria</div><div class="set-rs">Euro per ora lavorata</div></div>
+        <input class="set-inp" type="number" id="rate-inp" placeholder="0.00" step="0.5" min="0" onchange="saveRate()">
+      </div>
+    </div>
+    <div id="rate-update-wrap" style="display:none;margin-top:8px">
+      <button class="rate-update-btn" id="rate-update-btn" onclick="applyRateToUnpaid()"></button>
+    </div>
+  </div>
+  <div class="set-sec">
+    <div class="set-sec-t">Orario standard</div>
+    <div class="set-card">
+      <div class="set-row">
+        <div><div class="set-rl">Ore default</div><div class="set-rs">Precompilate al salvataggio</div></div>
+        <input class="set-inp" type="number" id="defh-inp" placeholder="8" step="0.5" min="1" max="24" onchange="saveDefH()">
+      </div>
+    </div>
+  </div>
+  <div class="set-sec">
+    <div class="set-sec-t">Clienti</div>
+    <div id="set-cli-list"></div>
+    <div class="add-client-row" style="margin-top:10px">
+      <input class="ac-inp" id="new-cli-inp" placeholder="Nome nuovo cliente…" onkeydown="if(event.key==='Enter')addClientSettings()">
+      <button class="ac-btn" onclick="addClientSettings()">+ Aggiungi</button>
+    </div>
+  </div>
+  <div class="set-sec" id="update-sec" style="display:none">
+    <div class="set-sec-t">Aggiornamento</div>
+    <div class="set-card">
+      <div class="set-row" style="cursor:pointer" onclick="applyUpdate()">
+        <div>
+          <div class="set-rl" style="color:var(--office)">🔄 Nuova versione disponibile</div>
+          <div class="set-rs">Tocca per aggiornare l'app</div>
+        </div>
+        <span style="color:var(--office)">›</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="set-sec">
+    <div class="set-sec-t">Dati</div>
+    <div class="set-card">
+      <div class="set-row" style="cursor:pointer" onclick="confirmClear()">
+        <div><div class="set-rl" style="color:#ef4444">Cancella tutti i dati</div><div class="set-rs">Azione irreversibile</div></div>
+        <span style="color:#ef4444">›</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="nav">
+  <button class="nb active" id="nb-home" onclick="goScreen('home')"><span class="ni">⊞</span><span>Home</span></button>
+  <button class="nb" id="nb-cal" onclick="goScreen('cal')"><span class="ni">📅</span><span>Calendario</span></button>
+  <button class="nb" id="nb-report" onclick="goScreen('report')"><span class="ni">📊</span><span>Report</span></button>
+  <button class="nb" id="nb-settings" onclick="goScreen('settings')" style="position:relative"><span class="ni">⚙️</span><span>Impostazioni</span><span id="upd-badge" style="display:none;position:absolute;top:4px;right:18px;width:9px;height:9px;border-radius:50%;background:#ef4444;border:1.5px solid var(--bg)"></span></button>
+</nav>
+
+<!-- ══ HOURS/NOTE MODAL ══ -->
+<div class="ovl" id="ovl-hours" onclick="closeOvl(event,'ovl-hours')">
+  <div class="sht">
+    <div class="sht-handle"></div>
+    <div class="sht-title" id="sht-title">Registra ore</div>
+    <div class="sht-sub" id="sht-sub"></div>
+
+    <!-- auto-advance banner -->
+    <div id="next-day-banner" class="next-day-banner" style="display:none">
+      <div><div class="ndb-left" id="ndb-date"></div><div class="ndb-sub">Prossimo giorno da compilare</div></div>
+      <div class="ndb-skip" onclick="advanceDay(1)">Salta →</div>
+    </div>
+
+    <!-- date picker (past day) -->
+    <div id="sht-date-row" style="display:none">
+      <input class="d-inp" type="date" id="sht-date-inp">
+    </div>
+
+    <!-- type selector (past day) -->
+    <div id="sht-type-row" class="type-row" style="display:none">
+      <button class="tp-btn sel-o" id="pt-o" onclick="setPType('office')">🏢 Ufficio</button>
+      <button class="tp-btn" id="pt-s" onclick="setPType('smart')">🏠 Smart</button>
+      <button class="tp-btn" id="pt-k" onclick="setPType('skip')">⏭️ Salto</button>
+    </div>
+
+    <!-- hours -->
+    <div class="hrs-pick" id="hrs-pick">
+      <div class="hrs-ctrl">
+        <button class="hb" onclick="chH(1)">▲</button>
+        <button class="hb" onclick="chH(-1)">▼</button>
+      </div>
+      <div class="hrs-val" id="hrs-val">8</div>
+      <div class="hrs-ctrl">
+        <button class="hb" onclick="chHH(1)">+½</button>
+        <button class="hb" onclick="chHH(-1)">-½</button>
+      </div>
+    </div>
+
+    <!-- NOTE -->
+    <div class="note-sec">
+      <div class="note-lbl">📝 Note / Attività svolte <span style="font-weight:400;font-size:10px">(opzionale)</span></div>
+      <textarea class="note-ta" id="note-ta" placeholder="Es: Riunione con il team, sviluppo feature X, revisione documenti…" maxlength="500" oninput="updNC()"></textarea>
+      <div class="note-cnt"><span id="nc">0</span>/500</div>
+    </div>
+
+    <button class="sht-ok" id="sht-ok" onclick="confirmLog()">✓ Salva</button>
+    <button class="sht-del" id="sht-del" onclick="deleteLog()" style="display:none">🗑 Elimina giornata</button>
+  </div>
+</div>
+
+<!-- ══ CLIENT EDIT MODAL ══ -->
+<div class="ovl" id="ovl-cli-edit" onclick="closeOvl(event,'ovl-cli-edit')">
+  <div class="sht">
+    <div class="sht-handle"></div>
+    <div class="sht-title" style="margin-bottom:14px" id="ce-modal-title">Modifica cliente</div>
+
+    <div class="ce-row">
+      <div class="ce-emoji-btn" id="ce-emoji-preview" onclick="toggleEmojiPicker()">👤</div>
+      <input class="ce-name-inp" id="ce-name-inp" placeholder="Nome cliente…" maxlength="30">
+    </div>
+
+    <!-- emoji picker -->
+    <div id="emoji-picker-wrap" style="display:none">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:6px;">Scegli icona</div>
+      <div class="emoji-grid" id="emoji-grid"></div>
+    </div>
+
+    <button class="sht-ok" style="background:var(--office)" onclick="saveClientEdit()">✓ Salva cliente</button>
+    <button class="sht-del" id="ce-del-btn" onclick="deleteClientFromEdit()" style="display:none">🗑 Elimina cliente</button>
+  </div>
+</div>
+
+<!-- update is now automatic, no banner needed -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ STORAGE ══
+// NEW DATA STRUCTURE: data[dateKey][clientId] = {type, hours, note}
+// This allows multiple clients to have entries on the same day without overwriting.
+// Legacy flat entries (data[dateKey] = {type,...}) are migrated on first load.
+const DK='wl_d_v5',SK='wl_s_v2',CK='wl_c_v2',PK='wl_p_v1';
+
+function ld(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(DK));
+    if(!raw)return{};
+    // migrate legacy flat entries (from v4) if needed
+    const out={};
+    for(const[dateKey,val] of Object.entries(raw)){
+      if(val&&typeof val==='object'&&!Array.isArray(val)){
+        // check if it's already new format: values are objects with type field at top level = old, or sub-objects = new
+        const firstVal=Object.values(val)[0];
+        if(firstVal&&typeof firstVal==='object'&&'type' in firstVal){
+          // already new format
+          out[dateKey]=val;
+        } else if('type' in val){
+          // old flat format — migrate under clientId key or '__none__'
+          const cid=val.clientId||'__none__';
+          out[dateKey]={[cid]:val};
+        } else {
+          out[dateKey]=val;
+        }
+      }
+    }
+    return out;
+  }catch{return{};}
+}
+const sd=d=>localStorage.setItem(DK,JSON.stringify(d));
+const ls=()=>{try{return JSON.parse(localStorage.getItem(SK))||{rate:0,defH:8};}catch{return{rate:0,defH:8};}};
+const ss=s=>localStorage.setItem(SK,JSON.stringify(s));
+// clients stored as array of {id, name, emoji}
+const lc=()=>{try{const r=JSON.parse(localStorage.getItem(CK));if(!r)return[];return r.map(c=>typeof c==='string'?{id:c,name:c,emoji:'👤'}:c);}catch{return[];}};
+const sc=c=>localStorage.setItem(CK,JSON.stringify(c));
+const lp=()=>{try{return JSON.parse(localStorage.getItem(PK))||{};}catch{return{};}};
+const sp=p=>localStorage.setItem(PK,JSON.stringify(p));
+
+// ── Data helpers ──
+// Get entry for a specific client on a date. clientId='__none__' for unassigned.
+function getEntry(data,dateKey,clientId){
+  const day=data[dateKey];
+  if(!day)return null;
+  return day[clientId||'__none__']||null;
+}
+
+// Get ALL entries for a date as array [{clientId, ...entry}]
+function getDayEntries(data,dateKey){
+  const day=data[dateKey];
+  if(!day)return[];
+  return Object.entries(day).map(([cid,e])=>({...e,_cid:cid}));
+}
+
+// Set entry for a client on a date
+function setEntry(data,dateKey,clientId,entry){
+  if(!data[dateKey])data[dateKey]={};
+  data[dateKey][clientId||'__none__']=entry;
+}
+
+// Delete entry for a client on a date; remove date key if empty
+function delEntry(data,dateKey,clientId){
+  if(!data[dateKey])return;
+  delete data[dateKey][clientId||'__none__'];
+  if(Object.keys(data[dateKey]).length===0)delete data[dateKey];
+}
+
+// Aggregate all entries on a date (for calendar display - show dominant type)
+function getDayAggregate(data,dateKey){
+  const entries=getDayEntries(data,dateKey);
+  if(!entries.length)return null;
+  let oH=0,sH=0,sk=0,notes=[];
+  entries.forEach(e=>{
+    if(e.type==='office')oH+=e.hours||0;
+    else if(e.type==='smart')sH+=e.hours||0;
+    else if(e.type==='skip')sk++;
+    if(e.note)notes.push(e.note);
+  });
+  const totalH=oH+sH;
+  // dominant type for color
+  const type=oH>=sH?(oH>0?'office':(sk>0?'skip':'smart')):(sH>0?'smart':(sk>0?'skip':'office'));
+  return{type,oH,sH,sk,totalH,notes,entries,hasNote:notes.length>0};
+}
+
+const dk=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const pk=k=>{const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d);};
+const mk=(y,m)=>`${y}-${String(m+1).padStart(2,'0')}`;
+const MI=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const DI=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+const MS=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+const NONE='__none__';
+
+const EMOJIS=['👤','🏢','🌐','💼','🚀','⭐','🎯','💡','🔧','🖥️','📱','🎨','📐','🏗️','🔬','📊','🛒','🏪','🏭','✈️','🚗','🏠','🎓','🩺','⚖️','🎵','🍕','🌱','🐱','🐶','🦊','🐼','🐸','🦁','🐯','🐺'];
+
+// ══ STATE ══
+let curType=null,shH=8,shDate=null,editMode=false;
+let activeClient='none'; // 'none'|'all'|client.id
+let calView='days',calY=new Date().getFullYear(),calM=new Date().getMonth();
+let exportFilter='all'; // 'all' | client.id
+// past-day auto-advance
+let pastAdvanceDate=null; // current date being edited in past-day flow
+// client edit
+let editingClientId=null;
+let ceSelectedEmoji='👤';
+
+// ══ HELPERS ══
+function getClient(id){return lc().find(c=>c.id===id)||null;}
+function getClientByName(name){return lc().find(c=>c.name===name)||null;}
+function genId(){return 'c_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);}
+
+// ══ SCREEN ══
+function goScreen(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sc-'+n).classList.add('active');
+  document.getElementById('nb-'+n).classList.add('active');
+  if(n==='cal')renderCal();
+  if(n==='report')renderReport();
+  if(n==='settings')loadSettingsUI();
+  if(n==='home')renderHome();
+}
+
+// ══ CLIENT GRID (HOME) ══
+function renderClientGrid(){
+  const clients=lc(),grid=document.getElementById('client-grid');
+  grid.innerHTML='';
+  // "Tutti"
+  const allC=document.createElement('div');
+  allC.className='c-chip all-chip'+(activeClient==='all'?' active':'');
+  allC.textContent='🌐 Tutti';
+  allC.onclick=()=>selectClient('all');
+  grid.appendChild(allC);
+  // client chips
+  clients.forEach(c=>{
+    const chip=document.createElement('div');
+    chip.className='c-chip'+(activeClient===c.id?' active':'');
+    chip.textContent=c.emoji+' '+c.name;
+    chip.onclick=()=>selectClient(c.id);
+    grid.appendChild(chip);
+  });
+  // add
+  const add=document.createElement('div');
+  add.className='c-chip add-chip';add.textContent='+ Nuovo';
+  add.onclick=()=>openClientEdit(null);
+  grid.appendChild(add);
+}
+
+function selectClient(id){
+  activeClient=id;
+  renderClientGrid();
+  updateActionsVisibility();
+  renderTodayCard();
+  renderMonthlySummary();
+  // past-btn: always available when client is selected
+  document.getElementById('past-btn').classList.toggle('disabled-btn',id==='none');
+}
+
+function resetClient(){
+  activeClient='none';
+  renderClientGrid();
+  updateActionsVisibility();
+  renderTodayCard();
+  renderMonthlySummary();
+  document.getElementById('past-btn').classList.add('disabled-btn');
+}
+
+function updateActionsVisibility(){
+  const has=activeClient!=='none';
+  document.getElementById('sel-banner').style.display=has?'flex':'none';
+  document.getElementById('today-card').style.display=has?'block':'none';
+  document.getElementById('mo-sum').style.display=has?'grid':'none';
+  document.getElementById('locked-wrap').style.display=has?'none':'block';
+  document.getElementById('act-wrap').style.display=has?'flex':'none';
+
+  if(has){
+    if(activeClient==='all'){
+      document.getElementById('sb-ico').textContent='🌐';
+      document.getElementById('sb-name').textContent='Tutti i clienti';
+      document.getElementById('sb-sub').textContent='Ore registrate senza cliente specifico';
+      document.getElementById('sel-banner').style.border='1px solid var(--border)';
+      document.getElementById('sel-banner').style.background='rgba(255,255,255,.03)';
+    } else {
+      const c=getClient(activeClient);
+      if(c){
+        document.getElementById('sb-ico').textContent=c.emoji;
+        document.getElementById('sb-name').textContent=c.name;
+        const{oH,sH}=getClientStats(c.id,new Date().getFullYear(),new Date().getMonth());
+        document.getElementById('sb-sub').textContent=`Questo mese: ${oH+sH}h lavorate`;
+        document.getElementById('sel-banner').style.border='1px solid rgba(59,130,246,.3)';
+        document.getElementById('sel-banner').style.background='rgba(59,130,246,.07)';
+      }
+    }
+  }
+}
+
+// ══ HOME ══
+function renderHome(){
+  const today=new Date();
+  document.getElementById('hdr-date').textContent=`${DI[today.getDay()].slice(0,3)} ${today.getDate()} ${MS[today.getMonth()]}`;
+  document.getElementById('past-btn').classList.toggle('disabled-btn',activeClient==='none');
+  renderClientGrid();
+  updateActionsVisibility();
+  renderTodayCard();
+  renderMonthlySummary();
+}
+
+function renderTodayCard(){
+  if(activeClient==='none')return;
+  const data=ld(),key=dk(new Date());
+  const dot=document.getElementById('s-dot'),txt=document.getElementById('s-txt'),hrs=document.getElementById('t-hrs'),noteEl=document.getElementById('t-note');
+  const c=activeClient!=='all'?getClient(activeClient):null;
+  document.getElementById('t-lbl').textContent=c?('Oggi · '+c.name):'Oggi';
+
+  // get entry for this specific client (or aggregate for "all")
+  let fe=null;
+  if(activeClient==='all'){
+    const agg=getDayAggregate(data,key);
+    if(agg){fe={type:agg.type,hours:agg.totalH,note:agg.notes.join(' | ')};}
+  } else {
+    fe=getEntry(data,key,activeClient);
+  }
+
+  if(!fe){dot.style.background='#444';txt.textContent='Nessun dato';hrs.textContent='';noteEl.style.display='none';}
+  else if(fe.type==='office'){dot.style.background='var(--office)';txt.innerHTML='<span style="color:var(--office)">🏢 Ufficio</span>';hrs.textContent=fe.hours+'h registrate';}
+  else if(fe.type==='smart'){dot.style.background='var(--smart)';txt.innerHTML='<span style="color:var(--smart)">🏠 Smart Working</span>';hrs.textContent=fe.hours+'h registrate';}
+  else{dot.style.background='var(--skip)';txt.innerHTML='<span style="color:var(--skip)">⏭️ Giornata Saltata</span>';hrs.textContent='';}
+  if(fe&&fe.note){noteEl.textContent='📝 '+fe.note;noteEl.style.display='block';}
+  else noteEl.style.display='none';
+}
+
+function renderMonthlySummary(){
+  if(activeClient==='none')return;
+  const y=new Date().getFullYear(),m=new Date().getMonth();
+  const st=activeClient==='all'?getMonthStats(y,m):getClientStats(activeClient,y,m);
+  document.getElementById('sum-o').textContent=st.oH+'h';
+  document.getElementById('sum-s').textContent=st.sH+'h';
+  document.getElementById('sum-k').textContent=st.sk+'gg';
+}
+
+function getClientStats(clientId,y,m){
+  const data=ld();
+  let oH=0,sH=0,sk=0;
+  Object.entries(data).forEach(([dateKey,day])=>{
+    const d=pk(dateKey);
+    if(d.getFullYear()!==y||d.getMonth()!==m)return;
+    const e=day[clientId]||day[clientId===NONE?'__none__':clientId];
+    if(!e)return;
+    if(e.type==='office')oH+=e.hours||0;
+    else if(e.type==='smart')sH+=e.hours||0;
+    else if(e.type==='skip')sk++;
+  });
+  return{oH,sH,sk,total:oH+sH};
+}
+
+function getMonthStats(y,m,filterClientId){
+  // filterClientId: undefined = all clients, otherwise specific client or NONE
+  const data=ld();let oH=0,sH=0,sk=0,has=false;
+  Object.entries(data).forEach(([dateKey,day])=>{
+    const d=pk(dateKey);if(d.getFullYear()!==y||d.getMonth()!==m)return;
+    const entriesToCount=filterClientId!==undefined
+      ? (day[filterClientId]?[day[filterClientId]]:[])
+      : Object.values(day);
+    entriesToCount.forEach(e=>{
+      has=true;
+      if(e.type==='office')oH+=e.hours||0;
+      else if(e.type==='smart')sH+=e.hours||0;
+      else if(e.type==='skip')sk++;
+    });
+  });
+  return{oH,sH,sk,total:oH+sH,has};
+}
+
+// ══ SHEET ══
+function openSheet(type,dateStr,existing){
+  // GUARD: must have client selected
+  if(activeClient==='none'){showToast('⚠️ Seleziona prima un cliente');return;}
+
+  const s=ls();
+  curType=type; shH=existing?.hours||s.defH||8; editMode=!!existing; shDate=dateStr;
+  updHrsVal();
+
+  const cols={office:'var(--office)',smart:'var(--smart)',skip:'var(--skip)'};
+  const lbls={office:'🏢 Ore in Ufficio',smart:'🏠 Smart Working',skip:'⏭️ Giornata Saltata'};
+  const titleEl=document.getElementById('sht-title');
+  titleEl.textContent=lbls[type]; titleEl.style.color=cols[type];
+  document.getElementById('sht-ok').style.background=cols[type];
+  document.getElementById('sht-del').style.display=editMode?'block':'none';
+  document.getElementById('sht-date-row').style.display='none';
+  document.getElementById('sht-type-row').style.display='none';
+  document.getElementById('next-day-banner').style.display='none';
+  document.getElementById('hrs-pick').style.display=type==='skip'?'none':'flex';
+
+  // subtitle: show client
+  const c=activeClient!=='all'?getClient(activeClient):null;
+  const subParts=[];
+  if(dateStr){const d=pk(dateStr);subParts.push(`${DI[d.getDay()]}, ${d.getDate()} ${MI[d.getMonth()]} ${d.getFullYear()}`);}
+  else{const t=new Date();subParts.push(`${DI[t.getDay()]}, ${t.getDate()} ${MI[t.getMonth()]} ${t.getFullYear()}`);}
+  if(c)subParts.push('Cliente: '+c.emoji+' '+c.name);
+  document.getElementById('sht-sub').textContent=subParts.join(' · ');
+
+  document.getElementById('note-ta').value=existing?.note||'';
+  updNC();
+  document.getElementById('ovl-hours').classList.add('open');
+}
+
+// ══ PAST DAY FLOW ══
+function openPastDay(){
+  if(activeClient==='none'){showToast('⚠️ Seleziona prima un cliente');return;}
+  const s=ls();
+  curType='office'; shH=s.defH||8; editMode=false; shDate=null;
+  updHrsVal();
+
+  // Auto-mark all past weekends as skip for this client
+  const cid=(activeClient!=='all'&&activeClient!=='none')?activeClient:NONE;
+  const data=ld();
+  const today=new Date(); today.setHours(0,0,0,0);
+  for(let i=1;i<=365;i++){
+    const t=new Date(); t.setDate(t.getDate()-i); t.setHours(0,0,0,0);
+    const dow=t.getDay();
+    if(dow===0||dow===6){
+      if(!data[dk(t)]?.[cid]){
+        if(!data[dk(t)])data[dk(t)]={};
+        data[dk(t)][cid]={type:'skip',hours:0,note:'Weekend'};
+      }
+    }
+  }
+  sd(data);
+
+  // Find oldest unrecorded working day going back from yesterday
+  let startDate=new Date(); startDate.setDate(startDate.getDate()-1);
+  pastAdvanceDate=startDate;
+  openPastDayForDate(pastAdvanceDate);
+}
+
+function openPastDayForDate(date){
+  const s=ls();
+  shH=s.defH||8;
+  const data=ld(),key=dk(date);
+  // load existing entry for this client (or aggregate if 'all')
+  const cid=activeClient!=='all'&&activeClient!=='none'?activeClient:NONE;
+  const existing=getEntry(data,key,cid);
+  editMode=!!existing;
+  shDate=null;
+  if(existing){curType=existing.type;shH=existing.hours||s.defH||8;}
+  else curType='office';
+  updHrsVal();
+
+  document.getElementById('sht-title').textContent='📅 Giorno passato';
+  document.getElementById('sht-title').style.color='var(--text)';
+
+  const c=activeClient!=='all'?getClient(activeClient):null;
+  document.getElementById('sht-sub').textContent=c?('Cliente: '+c.emoji+' '+c.name):'';
+
+  document.getElementById('sht-date-row').style.display='block';
+  document.getElementById('sht-date-inp').value=dk(date);
+  document.getElementById('sht-type-row').style.display='flex'; // always show type selector
+  const isWe=date.getDay()===0||date.getDay()===6;
+  document.getElementById('sht-title').textContent=isWe?'📅 Weekend (modificabile)':'📅 Giorno passato';
+  document.getElementById('sht-del').style.display=editMode?'block':'none';
+  setPType(curType); // setPType sets hrs-pick visibility AND sht-ok color — call last
+
+  // auto-advance banner: show next un-filled working day
+  updateNextDayBanner(date);
+
+  document.getElementById('note-ta').value=existing?.note||'';
+  updNC();
+  document.getElementById('ovl-hours').classList.add('open');
+}
+
+function updateNextDayBanner(currentDate){
+  const data=ld();
+  const cid=activeClient!=='all'&&activeClient!=='none'?activeClient:NONE;
+  let found=null;
+  const today=new Date(); today.setHours(0,0,0,0);
+  // Search forward from the day AFTER currentDate up to 90 days ahead
+  for(let i=1;i<=90;i++){
+    const t=new Date(currentDate);
+    t.setDate(t.getDate()+i);
+    t.setHours(0,0,0,0);
+    if(t>=today)break; // don't go past today
+    const dow=t.getDay();if(dow===0||dow===6)continue; // skip weekends
+    if(!getEntry(data,dk(t),cid)){found=t;break;}
+  }
+  const banner=document.getElementById('next-day-banner');
+  if(found){
+    pastAdvanceDate=found;
+    document.getElementById('ndb-date').textContent=`${DI[found.getDay()]} ${found.getDate()} ${MS[found.getMonth()]}`;
+    banner.style.display='flex';
+  } else banner.style.display='none';
+}
+
+function advanceDay(dir){
+  if(!pastAdvanceDate)return;
+  openPastDayForDate(pastAdvanceDate);
+}
+
+function setPType(t){
+  curType=t;
+  const col={office:'rgba(59,130,246,.5)',smart:'rgba(16,185,129,.5)',skip:'rgba(245,158,11,.5)'};
+  const bg={office:'rgba(59,130,246,.15)',smart:'rgba(16,185,129,.15)',skip:'rgba(245,158,11,.15)'};
+  const cl={office:'var(--office)',smart:'var(--smart)',skip:'var(--skip)'};
+  ['o','s','k'].forEach((x,i)=>{
+    const types=['office','smart','skip'];
+    const b=document.getElementById('pt-'+x);if(!b)return;
+    const tt=types[i];
+    b.style.borderColor=tt===t?col[tt]:'var(--border)';
+    b.style.background=tt===t?bg[tt]:'var(--surface2)';
+    b.style.color=tt===t?cl[tt]:'var(--muted)';
+    b.className='tp-btn'+(tt===t?' sel-'+x:'');
+  });
+  document.getElementById('sht-ok').style.background=cl[t];
+  document.getElementById('hrs-pick').style.display=t==='skip'?'none':'flex';
+}
+
+function closeOvl(e,id){if(e.target===document.getElementById(id))document.getElementById(id).classList.remove('open');}
+function updHrsVal(){document.getElementById('hrs-val').textContent=shH%1===0?shH+'':shH.toFixed(1);}
+function chH(d){shH=Math.max(1,Math.min(24,shH+d));updHrsVal();}
+function chHH(d){shH=Math.max(0.5,Math.min(24,shH+d*.5));updHrsVal();}
+function updNC(){const v=document.getElementById('note-ta').value.length;document.getElementById('nc').textContent=v;}
+
+// ══ SAVE / DELETE (multi-client per day) ══
+function confirmLog(){
+  let key=shDate;
+  if(!key){
+    const dr=document.getElementById('sht-date-row');
+    if(dr.style.display!=='none'){
+      key=document.getElementById('sht-date-inp').value;
+      if(!key){showToast('⚠️ Seleziona una data');return;}
+    } else key=dk(new Date());
+  }
+
+  // client is ALWAYS the one chosen in step 1 of home
+  const cid = (activeClient!=='all'&&activeClient!=='none') ? activeClient : NONE;
+  const clientObj = cid!==NONE ? getClient(cid) : null;
+
+  const note=document.getElementById('note-ta').value.trim();
+  const data=ld();
+  // CRITICAL: write into data[dateKey][clientId] — does NOT touch other clients' slots
+  if(!data[key]) data[key]={};
+  data[key][cid]={type:curType, hours:curType==='skip'?0:shH, note:note||null};
+  sd(data);
+
+  const isPastMode=document.getElementById('sht-date-row').style.display!=='none';
+  document.getElementById('ovl-hours').classList.remove('open');
+  renderHome();
+  if(document.getElementById('sc-cal').classList.contains('active'))renderCal();
+
+  const lbs={office:'Ufficio',smart:'Smart',skip:'Saltata'};
+  const cn=clientObj?(' · '+clientObj.name):'';
+  showToast('✓ '+lbs[curType]+(curType!=='skip'?' '+shH+'h':'')+cn);
+
+  // auto-advance removed — user stays on same day after save
+}
+
+function deleteLog(){
+  let key=shDate;
+  if(!key){
+    const dr=document.getElementById('sht-date-row');
+    key=dr.style.display!=='none'?document.getElementById('sht-date-inp').value:dk(new Date());
+  }
+  if(!confirm('Eliminare questa voce?'))return;
+  const cid=(activeClient!=='all'&&activeClient!=='none')?activeClient:NONE;
+  const data=ld();
+  if(data[key]){
+    delete data[key][cid];
+    if(Object.keys(data[key]).length===0) delete data[key];
+  }
+  sd(data);
+  document.getElementById('ovl-hours').classList.remove('open');
+  renderHome();
+  if(document.getElementById('sc-cal').classList.contains('active'))renderCal();
+  showToast('🗑️ Voce eliminata');
+}
+
+// ══ CALENDAR ══
+function setCalView(v){
+  calView=v;
+  ['days','months','years'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('active',x===v));
+  document.getElementById('cal-dh').style.display=v==='days'?'grid':'none';
+  document.getElementById('cal-leg').style.display=v==='days'?'flex':'none';
+  renderCal();
+}
+function calNav(dir){
+  if(calView==='days'){calM+=dir;if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;}}
+  else if(calView==='months')calY+=dir;
+  else calY+=dir*5;
+  renderCal();
+}
+function isMonthPaid(y,m){return getMoPaid(mk(y,m));}
+
+function renderCal(){
+  const g=document.getElementById('cal-grid');
+  g.innerHTML='';document.getElementById('cal-det').style.display='none';
+  if(calView==='days')renderCalDays(g);
+  else if(calView==='months')renderCalMonths(g);
+  else renderCalYears(g);
+}
+
+function renderCalDays(g){
+  document.getElementById('cal-title').textContent=`${MI[calM]} ${calY}`;
+  g.className='cal-grid';
+  const data=ld(),paid=lp(),today=new Date(),mk_=mk(calY,calM),mPaid=!!paid[mk_];
+  const cid=(activeClient!=='all'&&activeClient!=='none')?activeClient:null;
+  let off=new Date(calY,calM,1).getDay()-1;if(off<0)off=6;
+  const days=new Date(calY,calM+1,0).getDate();
+  for(let i=0;i<off;i++){const e=document.createElement('div');e.className='cc empty';g.appendChild(e);}
+  for(let d=1;d<=days;d++){
+    const date=new Date(calY,calM,d),dow=date.getDay(),isWe=dow===0||dow===6,key=dk(date);
+    let entry=null;
+    if(cid){
+      entry=getEntry(data,key,cid);
+    } else {
+      const agg=getDayAggregate(data,key);
+      if(agg) entry={type:agg.type,hours:agg.totalH,hasNote:agg.hasNote};
+    }
+    const cell=document.createElement('div');cell.className='cc';
+    if(d===today.getDate()&&calM===today.getMonth()&&calY===today.getFullYear())cell.classList.add('today');
+    if(entry){
+      const tc=entry.type==='office'?'off':entry.type==='smart'?'smt':'skp';
+      cell.classList.add('has-data','t-'+tc);
+      if(entry.hasNote||entry.note)cell.classList.add('has-note');
+      if(entry.type!=='skip'){if(mPaid)cell.classList.add('paid');else cell.classList.add('unpaid');}
+      cell.innerHTML=`<span class="cn">${d}</span><span class="cdot"></span>`;
+    } else {
+      if(isWe)cell.classList.add('we');
+      cell.innerHTML=`<span class="cn">${d}</span>`;
+    }
+    cell.addEventListener('click',()=>showDayDetail(date,key));
+    g.appendChild(cell);
+  }
+}
+
+function renderCalMonths(g){
+  document.getElementById('cal-title').textContent=`${calY}`;
+  g.className='cal-mg';
+  const now=new Date();
+  for(let m=0;m<12;m++){
+    // Don't show future months (beyond current month of current year)
+    if(calY>now.getFullYear()||(calY===now.getFullYear()&&m>now.getMonth())){
+      const cell=document.createElement('div');cell.className='cmc';
+      cell.style.opacity='0.2';cell.style.pointerEvents='none';
+      cell.innerHTML=`<div class="cmn">${MS[m]}</div><div class="cmh">—</div>`;
+      g.appendChild(cell);
+      continue;
+    }
+    const st=getMonthStats(calY,m),isPaid=isMonthPaid(calY,m);
+    const cell=document.createElement('div');cell.className='cmc';
+    if(st.has)cell.classList.add(isPaid?'paid':'unpaid');
+    cell.innerHTML=`<div class="cmn">${MS[m]}</div><div class="cmh">${st.total>0?st.total+'h':st.has?'salti':'—'}</div>`;
+    cell.onclick=()=>{calM=m;setCalView('days');};
+    g.appendChild(cell);
+  }
+}
+
+function renderCalYears(g){
+  document.getElementById('cal-title').textContent=`${calY-2} – ${calY+2}`;
+  g.className='cal-yg';
+  for(let y=calY-2;y<=calY+2;y++){
+    let tot=0,anyU=false,anyD=false;
+    for(let m=0;m<12;m++){const st=getMonthStats(y,m);tot+=st.total;if(st.has){anyD=true;if(!isMonthPaid(y,m))anyU=true;}}
+    const cell=document.createElement('div');cell.className='cyc';
+    if(anyD)cell.classList.add(anyU?'unpaid':'paid');
+    cell.innerHTML=`<div class="yy">${y}</div><div class="yh">${tot>0?tot+'h':'—'}</div>`;
+    cell.onclick=()=>{calY=y;setCalView('months');};
+    g.appendChild(cell);
+  }
+}
+
+// showDayDetail: shows entry for active client only (or all if 'all')
+function showDayDetail(date,key){
+  const det=document.getElementById('cal-det'),dow=date.getDay(),isWe=dow===0||dow===6;
+  const mk_=mk(date.getFullYear(),date.getMonth()),paid=lp(),mPaid=!!paid[mk_];
+  const data=ld();
+  const cid=(activeClient!=='all'&&activeClient!=='none')?activeClient:NONE;
+
+  // Filter entries to show: only current client (or all if 'all')
+  let entries;
+  if(activeClient==='all'){
+    entries=getDayEntries(data,key);
+  } else if(activeClient!=='none'){
+    const e=getEntry(data,key,cid);
+    entries=e?[{...e,_cid:cid}]:[];
+  } else {
+    entries=getDayEntries(data,key);
+  }
+
+  let html=`<div class="cd-date">${DI[dow]}, ${date.getDate()} ${MI[date.getMonth()]} ${date.getFullYear()}</div>`;
+
+  if(entries.length===0){
+    if(isWe) html+=`<div class="cd-row"><div class="cd-type">🏖️ <span style="color:var(--muted)">Weekend</span></div></div>`;
+    else html+=`<div class="cd-row"><div class="cd-type" style="color:var(--muted)">Nessun dato</div></div>`;
+  } else {
+    entries.forEach(e=>{
+      const ecid=e._cid;
+      const c=ecid!==NONE?getClient(ecid):null;
+      const ctag=c?`<span class="ctag">${c.emoji} ${c.name}</span>`:(ecid===NONE?'':`<span class="ctag">${ecid}</span>`);
+      const typeIcon=e.type==='office'?'🏢':e.type==='smart'?'🏠':'⏭️';
+      const typeCol=e.type==='office'?'var(--office)':e.type==='smart'?'var(--smart)':'var(--skip)';
+      const typeName=e.type==='office'?'Ufficio':e.type==='smart'?'Smart':'Saltata';
+      html+=`<div class="cd-row">`;
+      html+=`<div class="cd-type">${typeIcon} <span style="color:${typeCol}">${typeName}</span>${ctag}</div>`;
+      html+=e.type!=='skip'?`<div class="cd-hrs" style="color:${typeCol}">${e.hours}h</div>`:`<div></div>`;
+      html+=`</div>`;
+      if(e.note) html+=`<div class="cd-note">📝 ${e.note.replace(/</g,'&lt;')}</div>`;
+    });
+    if(entries.length>1){
+      const totH=entries.reduce((s,e)=>s+(e.type!=='skip'?e.hours:0),0);
+      html+=`<div style="font-size:12px;font-weight:700;color:var(--office);text-align:right;padding:4px 0 6px">Totale: ${totH}h</div>`;
+    }
+  }
+
+  html+='<div class="cd-acts">';
+  // Always show edit/add button (also on weekends — user can override)
+  if(activeClient!=='none'){
+    const myEntry=entries.find(e=>e._cid===cid);
+    if(myEntry){
+      const eData=encodeURIComponent(JSON.stringify({type:myEntry.type,hours:myEntry.hours,note:myEntry.note}));
+      html+=`<button class="db edit" onclick='editExistingEntry("${key}","${cid}","${eData}")'>✏️ Modifica</button>`;
+      html+=`<button class="db" onclick="deleteEntryFromCal('${key}','${cid}')" style="border-color:rgba(239,68,68,.4);color:#ef4444">🗑</button>`;
+    } else {
+      html+=`<button class="db edit" onclick="pastAdvanceDate=pk('${key}');openPastDayForDate(pk('${key}'))">+ Aggiungi</button>`;
+    }
+    if(entries.some(e=>e.type!=='skip')){
+      html+=`<button class="db ${mPaid?'ub':'pb'}" onclick="toggleMPaid('${mk_}','${key}')">${mPaid?'💰 Pag.':'⏳ Non pag.'}</button>`;
+    }
+  }
+  html+='</div>';
+  det.innerHTML=html;det.style.display='block';
+}
+
+function editExistingEntry(dateKey,cid,eDataEncoded){
+  const e=JSON.parse(decodeURIComponent(eDataEncoded));
+  shDate=dateKey;
+  // Use openPastDayForDate so type+hours selector always shows
+  pastAdvanceDate=pk(dateKey);
+  openPastDayForDate(pk(dateKey));
+}
+
+function deleteEntryFromCal(dateKey,cid){
+  if(!confirm('Eliminare questa voce?'))return;
+  const data=ld();
+  if(data[dateKey]){
+    delete data[dateKey][cid];
+    if(Object.keys(data[dateKey]).length===0)delete data[dateKey];
+  }
+  sd(data);
+  renderCal();
+  showToast('🗑️ Voce eliminata');
+}
+
+function quickSkip(dateKey){
+  if(activeClient==='none'){showToast('⚠️ Seleziona prima un cliente');return;}
+  const cid=(activeClient!=='all'&&activeClient!=='none')?activeClient:NONE;
+  const data=ld();
+  if(!data[dateKey])data[dateKey]={};
+  data[dateKey][cid]={type:'skip',hours:0,note:null};
+  sd(data);renderCal();showToast('⏭️ Saltata');
+}
+
+function toggleMPaid(mk_,dateKey){
+  const p=lp();p[mk_]=!p[mk_];sp(p);
+  renderCal();
+  const date=pk(dateKey);showDayDetail(date,dateKey);
+}
+
+// ══ REPORT ══
+function getAllMonths(){
+  const data=ld(),months=new Set(),now=new Date();
+  // Always include current month
+  months.add(`${now.getFullYear()}-${now.getMonth()}`);
+  // Add months from recorded data
+  Object.keys(data).forEach(k=>{const d=pk(k);months.add(`${d.getFullYear()}-${d.getMonth()}`);});
+  // Sort correctly: convert to numeric value (year*12+month) then reverse
+  return[...months].sort((a,b)=>{
+    const[ay,am]=a.split('-').map(Number);
+    const[by,bm]=b.split('-').map(Number);
+    return (by*12+bm)-(ay*12+am); // descending
+  });
+}
+
+function renderReport(){renderMoOv();populateMoSel();renderRptDetail();renderExportFilter();}
+
+function renderExportFilter(){
+  const chips=document.getElementById('ef-chips');chips.innerHTML='';
+  const a=document.createElement('div');
+  a.className='ef-chip'+(exportFilter==='all'?' active':'');
+  a.textContent='🌐 Tutti';
+  a.onclick=()=>{exportFilter='all';renderExportFilter();};
+  chips.appendChild(a);
+  lc().forEach(c=>{
+    const ch=document.createElement('div');
+    ch.className='ef-chip'+(exportFilter===c.id?' active':'');
+    ch.textContent=c.emoji+' '+c.name;
+    ch.onclick=()=>{exportFilter=c.id;renderExportFilter();};
+    chips.appendChild(ch);
+  });
+}
+
+function renderMoOv(){
+  const list=document.getElementById('mo-ov-list');list.innerHTML='';
+  const months=getAllMonths(),s=ls(),rate=parseFloat(s.rate)||0,paid=lp();
+  // Compute unpaid total across all months
+  let unpaidTotal=0,unpaidHours=0,unpaidMonthCount=0;
+  months.forEach(mv=>{
+    const[y,mo]=mv.split('-').map(Number),mk_=mk(y,mo);
+    if(getMoPaid(mk_))return;
+    const st=getMonthStats(y,mo);if(st.total===0)return;
+    const r=getMoRate(mk_);if(!r)return;
+    unpaidTotal+=st.total*r;unpaidHours+=st.total;unpaidMonthCount++;
+  });
+  const utCard=document.getElementById('unpaid-total-card');
+  if(utCard){
+    if(unpaidTotal>0){
+      utCard.style.display='block';
+      document.getElementById('unpaid-amt').textContent=`€ ${unpaidTotal.toFixed(2).replace('.',',')}`;
+      document.getElementById('unpaid-dtl').textContent=`${unpaidHours}h in ${unpaidMonthCount} mes${unpaidMonthCount===1?'e':'i'} non pagat${unpaidMonthCount===1?'o':'i'}`;
+    } else {
+      utCard.style.display='none';
+    }
+  }
+  months.forEach(mv=>{
+    const[y,mo]=mv.split('-').map(Number),st=getMonthStats(y,mo),mk_=mk(y,mo);
+    if(st.total===0)return;
+    const isPaid=getMoPaid(mk_);
+    const moRate=getMoRate(mk_); // locked rate if paid, else current
+    const comp=st.total*moRate;
+    const showComp=moRate>0&&comp>0;
+    const showPaidBadge=showComp;
+    const card=document.createElement('div');card.className='moc';
+    card.innerHTML=`<div><div class="moc-name">${MI[mo]} ${y}</div><div class="moc-h">Uff: ${st.oH}h · Smart: ${st.sH}h · Salti: ${st.sk}</div></div><div class="moc-r">${showComp?`<div class="moc-amt">€${comp.toFixed(0)}</div>`:''} ${showPaidBadge?`<button class="pbadge ${isPaid?'paid':'unpaid'}" onclick="toggleMoPaidKey('${mk_}');event.stopPropagation()">${isPaid?'✓ Pagato':'⏳ Da pagare'}</button>`:''}</div>`;
+    card.onclick=()=>{document.getElementById('rpt-mo-sel').value=mv;renderRptDetail();};
+    list.appendChild(card);
+  });
+}
+
+function toggleMoPaidKey(mk_){
+  const p=lp();
+  const s=ls(),rate=parseFloat(s.rate)||0;
+  const cur=p[mk_];
+  if(cur&&typeof cur==='object') {
+    // toggle off
+    p[mk_]=false;
+  } else if(!cur) {
+    // toggle on — snapshot current rate
+    p[mk_]={paid:true,rate:rate};
+  } else {
+    p[mk_]=false;
+  }
+  sp(p);
+  renderMoOv();renderRptDetail();
+  if(document.getElementById('sc-cal').classList.contains('active'))renderCal();
+}
+// Helper: is a month paid?
+function getMoPaid(mk_){const v=lp()[mk_];return v&&(v===true||(typeof v==='object'&&v.paid));}
+// Helper: get the rate locked at payment time (or current if not locked)
+function getMoRate(mk_){const v=lp()[mk_];if(v&&typeof v==='object'&&v.rate!=null)return v.rate;return parseFloat(ls().rate)||0;}
+
+function populateMoSel(){
+  const sel=document.getElementById('rpt-mo-sel'),cur=sel.value;sel.innerHTML='';
+  getAllMonths().forEach(m=>{
+    const[y,mo]=m.split('-').map(Number),opt=document.createElement('option');
+    opt.value=m;opt.textContent=`${MI[mo]} ${y}`;sel.appendChild(opt);
+  });
+  if(cur)sel.value=cur;
+}
+
+function renderRptDetail(){
+  const sel=document.getElementById('rpt-mo-sel'),val=sel.value;if(!val)return;
+  const[y,mo]=val.split('-').map(Number);
+  // filter by exportFilter if set, else show all
+  const fid=exportFilter!=='all'?exportFilter:undefined;
+  const st=fid?getClientStats(fid,y,mo):getMonthStats(y,mo);
+  const mk_=mk(y,mo),isPaid=getMoPaid(mk_);
+  const moRate=getMoRate(mk_); // use locked rate if already paid
+  document.getElementById('rpt-o').textContent=st.oH+'h';
+  document.getElementById('rpt-s').textContent=st.sH+'h';
+  document.getElementById('rpt-k').textContent=st.sk+' gg';
+  document.getElementById('rpt-tot').textContent=st.total+'h';
+  const cc=document.getElementById('comp-card');
+  if(moRate>0){
+    cc.style.display='block';
+    document.getElementById('comp-amt').textContent=`€ ${(st.total*moRate).toFixed(2).replace('.',',')}`;
+    const rateLabel=isPaid&&getMoRate(mk_)!=(parseFloat(ls().rate)||0)?`€${moRate}/h (tariffa bloccata)`:`€${moRate}/h`;
+    document.getElementById('comp-dtl').textContent=`${st.total}h × ${rateLabel}`;
+    const btn=document.getElementById('pay-tgl');
+    btn.textContent=isPaid?'✓ Pagato':'⏳ Da pagare';
+    btn.className='pay-tgl '+(isPaid?'paid':'unpaid');
+  } else cc.style.display='none';
+}
+
+function toggleMonthPaid(){
+  const sel=document.getElementById('rpt-mo-sel'),val=sel.value;if(!val)return;
+  const[y,mo]=val.split('-').map(Number);toggleMoPaidKey(mk(y,mo));
+}
+
+// ══ EXPORT CSV (apre bene in Excel) ══
+function exportExcel(){
+  const sel=document.getElementById('rpt-mo-sel'),val=sel.value;if(!val)return;
+  const[y,mo]=val.split('-').map(Number),data=ld(),days=new Date(y,mo+1,0).getDate();
+  const filterCid=exportFilter!=='all'?exportFilter:null;
+  const filterC=filterCid?getClient(filterCid):null;
+  const filterLabel=filterC?filterC.name:'Tutti i clienti';
+  const s=ls();
+  const mk_=mk(y,mo),isPaid=getMoPaid(mk_),moRate=getMoRate(mk_);
+
+  const sep=';'; // semicolon for Italian/European Excel
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const row=(...cols)=>cols.map(q).join(sep);
+
+  let lines=[];
+
+  // Title
+  lines.push(row(`WorkLog — ${MI[mo]} ${y}`),'');
+  lines.push(row('Cliente:',filterLabel),'');
+  lines.push(''); // blank line
+
+  // Header
+  lines.push(row('Data','Giorno','Tipo','Ore','Cliente','Note'));
+
+  let tO=0,tS=0,sk=0;
+  for(let d=1;d<=days;d++){
+    const date=new Date(y,mo,d),key=dk(date),dow=date.getDay(),isWe=dow===0||dow===6;
+    const ds=`${String(d).padStart(2,'0')}/${String(mo+1).padStart(2,'0')}/${y}`;
+    const dayEntries=getDayEntries(data,key);
+    const filtered=filterCid?dayEntries.filter(e=>e._cid===filterCid):dayEntries;
+
+    if(isWe){lines.push(row(ds,DI[dow],'Weekend','','',''));continue;}
+    if(filtered.length===0){lines.push(row(ds,DI[dow],'Non registrato','','',''));continue;}
+
+    filtered.forEach(e=>{
+      const c=e._cid!==NONE?getClient(e._cid):null;
+      const tipo=e.type==='office'?'Ufficio':e.type==='smart'?'Smart Working':'Saltata';
+      const ore=e.type==='skip'?'':String(e.hours).replace('.',',');
+      lines.push(row(ds,DI[dow],tipo,ore,c?c.name:'',e.note||''));
+      if(e.type==='office')tO+=e.hours||0;
+      else if(e.type==='smart')tS+=e.hours||0;
+      else sk++;
+    });
+  }
+
+  // Summary
+  lines.push('');
+  lines.push(row('── RIEPILOGO ──','','','','',''));
+  lines.push(row('Ore in Ufficio','','',String(tO).replace('.',','),'',''));
+  lines.push(row('Ore Smart Working','','',String(tS).replace('.',','),'',''));
+  lines.push(row('Totale ore lavorate','','',String(tO+tS).replace('.',','),'',''));
+  lines.push(row('Giorni saltati / assenza','','',String(sk),'',''));
+  if(moRate>0){
+    lines.push('');
+    lines.push(row('Tariffa oraria','','','€ '+String(moRate).replace('.',','),'',''));
+    lines.push(row('Compenso totale','','','€ '+((tO+tS)*moRate).toFixed(2).replace('.',','),'',''));
+    lines.push(row('Stato pagamento','','',isPaid?'Pagato':'Da pagare','',''));
+  }
+
+  const csv=lines.join('\r\n');
+  const fname=`WorkLog_${MI[mo]}_${y}${filterC?'_'+filterC.name:''}.csv`;
+  const a=document.createElement('a');
+  // UTF-8 BOM so Excel riconosce caratteri italiani
+  a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=fname;a.click();
+  showToast('📊 Esportato: '+filterLabel);
+}
+
+// ══ CLIENT EDIT MODAL ══
+function openClientEdit(clientId){
+  editingClientId=clientId;
+  const c=clientId?getClient(clientId):null;
+  ceSelectedEmoji=c?.emoji||'👤';
+  document.getElementById('ce-modal-title').textContent=c?'Modifica cliente':'Nuovo cliente';
+  document.getElementById('ce-name-inp').value=c?.name||'';
+  document.getElementById('ce-emoji-preview').textContent=ceSelectedEmoji;
+  document.getElementById('ce-del-btn').style.display=c?'block':'none';
+  document.getElementById('emoji-picker-wrap').style.display='none';
+  const grid=document.getElementById('emoji-grid');grid.innerHTML='';
+  EMOJIS.forEach(e=>{
+    const btn=document.createElement('div');
+    btn.className='emoji-opt'+(e===ceSelectedEmoji?' sel':'');
+    btn.textContent=e;btn.onclick=()=>pickEmoji(e);
+    grid.appendChild(btn);
+  });
+  document.getElementById('ovl-cli-edit').classList.add('open');
+}
+
+function toggleEmojiPicker(){
+  const w=document.getElementById('emoji-picker-wrap');
+  w.style.display=w.style.display==='none'?'block':'none';
+}
+
+function pickEmoji(e){
+  ceSelectedEmoji=e;
+  document.getElementById('ce-emoji-preview').textContent=e;
+  document.querySelectorAll('.emoji-opt').forEach(el=>el.classList.toggle('sel',el.textContent===e));
+  document.getElementById('emoji-picker-wrap').style.display='none';
+}
+
+function saveClientEdit(){
+  const name=document.getElementById('ce-name-inp').value.trim();
+  if(!name){showToast('⚠️ Inserisci un nome');return;}
+  const clients=lc();
+  if(editingClientId){
+    const idx=clients.findIndex(c=>c.id===editingClientId);
+    if(idx>=0){clients[idx].name=name;clients[idx].emoji=ceSelectedEmoji;}
+  } else {
+    if(clients.find(c=>c.name===name)){showToast('⚠️ Nome già presente');return;}
+    clients.push({id:genId(),name,emoji:ceSelectedEmoji});
+  }
+  sc(clients);
+  document.getElementById('ovl-cli-edit').classList.remove('open');
+  renderClientGrid();
+  if(document.getElementById('sc-settings').classList.contains('active'))renderSettingsClients();
+  showToast('✓ '+(editingClientId?'Cliente aggiornato':'Cliente aggiunto: '+name));
+}
+
+function deleteClientFromEdit(){
+  if(!editingClientId)return;
+  const c=getClient(editingClientId);
+  if(!confirm(`Eliminare "${c?.name}"? Le ore registrate rimarranno.`))return;
+  const clients=lc().filter(x=>x.id!==editingClientId);
+  sc(clients);
+  if(activeClient===editingClientId)activeClient='none';
+  document.getElementById('ovl-cli-edit').classList.remove('open');
+  renderClientGrid();updateActionsVisibility();
+  if(document.getElementById('sc-settings').classList.contains('active'))renderSettingsClients();
+  showToast('🗑️ Cliente eliminato');
+}
+
+// ══ SETTINGS ══
+function loadSettingsUI(){
+  const s=ls();
+  document.getElementById('rate-inp').value=s.rate||'';
+  document.getElementById('defh-inp').value=s.defH||8;
+  renderSettingsClients();
+  updateRateUpdateBtn();
+}
+function saveRate(){
+  const s=ls();
+  const newRate=parseFloat(document.getElementById('rate-inp').value)||0;
+  s.rate=newRate;ss(s);
+  showToast('✓ Tariffa salvata');
+  updateRateUpdateBtn();
+}
+
+function updateRateUpdateBtn(){
+  const s=ls(),rate=parseFloat(s.rate)||0;
+  const wrap=document.getElementById('rate-update-wrap');
+  const btn=document.getElementById('rate-update-btn');
+  if(!wrap||!btn)return;
+  if(!rate){wrap.style.display='none';return;}
+  // Count unpaid months that have hours
+  const paid=lp();
+  let unpaidMonths=[];
+  getAllMonths().forEach(mv=>{
+    const[y,mo]=mv.split('-').map(Number);
+    const mk_=mk(y,mo);
+    if(getMoPaid(mk_))return; // already paid, skip
+    const st=getMonthStats(y,mo);
+    if(st.total===0)return;
+    unpaidMonths.push({mv,y,mo,mk_,total:st.total});
+  });
+  if(unpaidMonths.length===0){wrap.style.display='none';return;}
+  const tot=unpaidMonths.reduce((s,m)=>s+m.total,0);
+  btn.textContent=`🔄 Applica €${rate}/h ai ${unpaidMonths.length} mes${unpaidMonths.length===1?'e':'i'} non pagati (${tot}h → €${(tot*rate).toFixed(0)})`;
+  wrap.style.display='block';
+}
+
+function applyRateToUnpaid(){
+  const s=ls(),rate=parseFloat(s.rate)||0;
+  if(!rate){showToast('⚠️ Nessuna tariffa impostata');return;}
+  const paid=lp();
+  let count=0;
+  getAllMonths().forEach(mv=>{
+    const[y,mo]=mv.split('-').map(Number);
+    const mk_=mk(y,mo);
+    if(getMoPaid(mk_))return;
+    const st=getMonthStats(y,mo);
+    if(st.total===0)return;
+    // For unpaid months: just ensure they use the current rate (no locked rate stored yet)
+    // If there was a previously locked rate from a partial payment, clear it
+    if(paid[mk_]&&typeof paid[mk_]==='object'&&!paid[mk_].paid){
+      delete paid[mk_]; // remove any stale lock
+    }
+    count++;
+  });
+  sp(paid);
+  showToast(`✓ Tariffa €${rate}/h applicata a ${count} mes${count===1?'e':'i'} non pagati`);
+  document.getElementById('rate-update-wrap').style.display='none';
+  renderReport();
+}
+function saveDefH(){const s=ls();s.defH=parseFloat(document.getElementById('defh-inp').value)||8;ss(s);showToast('✓ Ore default salvate');}
+
+function renderSettingsClients(){
+  const clients=lc(),wrap=document.getElementById('set-cli-list');
+  wrap.innerHTML='';
+  if(!clients.length){wrap.innerHTML='<div style="color:var(--muted);font-size:12px;padding:4px 2px">Nessun cliente — aggiungine uno sotto</div>';return;}
+  const data=ld();
+  clients.forEach(c=>{
+    const item=document.createElement('div');item.className='client-list-item';
+    // sum all hours for this client across all dates
+    let tot=0;
+    Object.values(data).forEach(day=>{
+      const e=day[c.id];
+      if(e&&e.type!=='skip')tot+=e.hours||0;
+    });
+    item.innerHTML=`<div class="cli-ico">${c.emoji}</div><div class="cli-info"><div class="cli-name">${c.name}</div><div class="cli-stats">${tot}h totali registrate</div></div><button class="cli-edit-btn" onclick="openClientEdit('${c.id}');event.stopPropagation()">✏️ Modifica</button>`;
+    item.onclick=()=>openClientEdit(c.id);
+    wrap.appendChild(item);
+  });
+}
+
+function addClientSettings(){
+  const inp=document.getElementById('new-cli-inp'),name=inp.value.trim();if(!name)return;
+  const clients=lc();if(clients.find(c=>c.name===name)){showToast('⚠️ Già presente');return;}
+  clients.push({id:genId(),name,emoji:'👤'});sc(clients);inp.value='';
+  renderSettingsClients();renderClientGrid();showToast('✓ '+name+' aggiunto');
+}
+
+function confirmClear(){
+  if(confirm('Sei sicuro? Tutti i dati verranno cancellati definitivamente.')){
+    [DK,SK,CK,PK].forEach(k=>localStorage.removeItem(k));
+    activeClient='none';renderHome();showToast('🗑️ Dati cancellati');
+  }
+}
+
+// TOAST
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2700);
+}
+
+// ══ SERVICE WORKER + OPTIONAL UPDATE ══
+let swWaitingWorker = null;
+
+function applyUpdate(){
+  if(swWaitingWorker){
+    swWaitingWorker.postMessage('skipWaiting');
+  }
+}
+
+function showUpdateBadge(){
+  const badge = document.getElementById('upd-badge');
+  if(badge) badge.style.display = 'inline-block';
+  const sec = document.getElementById('update-sec');
+  if(sec) sec.style.display = 'block';
+}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      reg.update(); // check on every open
+
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+            // New version ready — show badge, don't force reload
+            swWaitingWorker = newWorker;
+            showUpdateBadge();
+          }
+        });
+      });
+
+      // If SW already waiting on load (e.g. page refreshed)
+      if(reg.waiting){
+        swWaitingWorker = reg.waiting;
+        showUpdateBadge();
+      }
+    }).catch(()=>{});
+
+    // When SW takes over, reload once
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if(!refreshing){ refreshing = true; window.location.reload(); }
+    });
+  });
+}
+
+// INIT
+renderHome();
+</script>
+</div>
+</body>
+</html>
